@@ -1,5 +1,6 @@
 import asyncio
 import constants
+import dataset
 import datetime
 import discord
 import logging
@@ -34,7 +35,8 @@ async def on_member_update(before, after):
 
         message = constants.MESSAGE_TEXT % (name, stream.game, url)
         embed = get_embed(url, user, stream)
-        await discord_client.send_message(discord.Object(CHANNEL_ID), content=message, embed=embed)
+        message = await discord_client.send_message(discord.Object(CHANNEL_ID), content=message, embed=embed)
+        
 
 def member_streaming(member):
     return member.server.id == SERVER_ID and\
@@ -73,5 +75,10 @@ def get_stream(user):
     user_id = twitch_client.users.translate_usernames_to_ids([user])[0].id
     stream = twitch_client.streams.get_stream_by_user(user_id)
     return stream
+
+def get_table():
+    db = dataset.connect('sqlite:///%s' % constants.DB_NAME)
+    table = db[constant.TABLE_NAME]
+    return table
 
 discord_client.run(constants.DISCORD_TOKEN)
