@@ -22,17 +22,18 @@ twitch_client = twitch.TwitchClient(client_id=constants.TWITCH_ID)
 async def on_ready():
     print('Logged in to servers:')
     for server in discord_client.servers:
-        print(str(server) + ' | ' + server.id)
-    print('---------')
+        print('%s | %s' % (server, server.id))
 
 @discord_client.event
 async def on_member_update(before, after):
     if member_streaming(after):
         name = after.name if after.nick is None else after.nick
-        title = after.game.name
         url = after.game.url
-        message = constants.MESSAGE_TEXT % name
-        embed = get_embed(url)
+        user = url.split('/')[-1]
+        stream = get_stream(user)
+
+        message = constants.MESSAGE_TEXT % (name, stream.game, url)
+        embed = get_embed(url, user, stream)
         await discord_client.send_message(discord.Object(CHANNEL_ID), content=message, embed=embed)
 
 def member_streaming(member):
@@ -40,10 +41,7 @@ def member_streaming(member):
            member.game is not None and\
            member.game.type == 1
 
-def get_embed(url):
-    user = url.split('/')[-1]
-    stream = get_stream(user)
-
+def get_embed(url, user, stream):
     embed = discord.Embed(title=url,
                           type=constants.EMBED_TYPE,
                           url=url,

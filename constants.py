@@ -1,6 +1,6 @@
 from secrets import *
 
-MESSAGE_TEXT = '%s is live, tune in now!'
+MESSAGE_TEXT = '%s is live with %s, tune in now! %s'
 EMBED_TYPE = 'rich'
 EMBED_COLOR = 6570404
 FOOTER_TEXT = 'Stream started'
