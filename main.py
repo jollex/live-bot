@@ -25,7 +25,7 @@ async def on_ready():
 
 @discord_client.event
 async def on_member_update(before, after):
-    if member_streaming(after) and not member_streaming(before):
+    if has_role(after) and member_streaming(after) and not member_streaming(before):
         name = after.name if after.nick is None else after.nick
         url = after.game.url
         user = url.split('/')[-1]
@@ -34,6 +34,12 @@ async def on_member_update(before, after):
         message = constants.MESSAGE_TEXT % (name, stream.game, url)
         embed = get_embed(url, user, stream)
         await discord_client.send_message(discord.Object(CHANNEL_ID), content=message, embed=embed)
+
+def has_role(member):
+    for role in member.roles:
+        if role.id in constants.ROLE_IDS:
+            return True
+    return False
 
 def member_streaming(member):
     return member.game is not None and\
