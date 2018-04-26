@@ -6,14 +6,13 @@ import logging
 import pytz
 import twitch
 
-SERVER_ID = constants.TEST_SERVER_ID
-CHANNEL_ID = constants.TEST_CHANNEL_ID
-
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
+
+CHANNEL_ID = constants.TEST_CHANNEL_ID
 
 discord_client = discord.Client()
 twitch_client = twitch.TwitchClient(client_id=constants.TWITCH_ID)
@@ -26,7 +25,7 @@ async def on_ready():
 
 @discord_client.event
 async def on_member_update(before, after):
-    if member_streaming(after):
+    if member_streaming(after) and not member_streaming(before):
         name = after.name if after.nick is None else after.nick
         url = after.game.url
         user = url.split('/')[-1]
@@ -37,8 +36,7 @@ async def on_member_update(before, after):
         await discord_client.send_message(discord.Object(CHANNEL_ID), content=message, embed=embed)
 
 def member_streaming(member):
-    return member.server.id == SERVER_ID and\
-           member.game is not None and\
+    return member.game is not None and\
            member.game.type == 1
 
 def get_embed(url, user, stream):
