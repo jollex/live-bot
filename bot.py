@@ -38,7 +38,7 @@ async def on_member_update(before, after):
         embed = get_embed(url, user, stream)
         message = await discord_client.send_message(discord.Object(CHANNEL_ID), content=message, embed=embed)
         table = get_table()
-        table.insert(dict(message_id=message.id,
+        table.insert(dict(id=message.id,
                           stream=user,
                           live=True))
 
