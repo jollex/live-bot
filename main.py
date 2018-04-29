@@ -20,12 +20,14 @@ twitch_client = twitch.TwitchClient(client_id=constants.TWITCH_ID)
 
 @discord_client.event
 async def on_ready():
-    print('Logged in to servers:')
+    logger.info('Logged in to servers:')
     for server in discord_client.servers:
-        print('%s | %s' % (server, server.id))
+        logger.info('%s | %s', server, server.id)
 
 @discord_client.event
 async def on_member_update(before, after):
+    log_member(before, 'before')
+    log_member(after, 'after')
     if has_role(after) and member_streaming(after) and not member_streaming(before):
         name = after.name if after.nick is None else after.nick
         url = after.game.url
@@ -39,7 +41,17 @@ async def on_member_update(before, after):
         table.insert(dict(message_id=message.id,
                           stream=user,
                           live=True))
-        
+
+def log_member(member, name):
+    logger.debug('---------------------------------')
+    logger.debug('%s: %s', name.upper(), member.name)
+    logger.debug('has role: %s', has_role(member))
+    logger.debug('streaming: %s', member_streaming(member))
+    logger.debug('game: %s', member.game)
+    if member.game is not None:
+        logger.debug('  name: %s', member.game.name)
+        logger.debug('  url: %s', member.game.url)
+        logger.debug('  type: %s', member.game.type)
 
 def has_role(member):
     for role in member.roles:
