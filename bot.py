@@ -41,39 +41,14 @@ class LiveBot():
             self.loop.close()
 
     async def listen(self):
-        self.initListeners()
-        await self.discord.connect()
-
-    def initListeners(self):
-        @self.discord.event
-        async def on_ready():
-            self.logger.info('Logged in to servers:')
-            for server in self.discord.servers:
-                self.logger.info('%s | %s', server, server.id)
-
         @self.discord.event
         async def on_member_update(before, after):
-            self.log_member(before, 'before')
-            self.log_member(after, 'after')
             if self.stream_change(before, after):
                 user = after.game.url.split('/')[-1]
                 stream_id = str(self.twitch.users.translate_usernames_to_ids([user])[0].id)
-                stream_ids = self.get_db_streams()
-                if stream_id not in stream_ids:
-                    stream = self.twitch.streams.get_stream_by_user(stream_id)
-                    await self.start_stream(stream)
+                self.stream_ids.append(stream_id)
 
-    def log_member(self, member, name):
-        self.logger.debug(constants.LOG_SEPARATOR)
-        self.logger.debug('%s: %s', name.upper(), member.name)
-        self.logger.debug('has role: %s', self.has_role(member))
-        self.logger.debug('streaming: %s', self.member_streaming(member))
-        self.logger.debug('game: %s', member.game)
-        if member.game is not None:
-            self.logger.debug('  name: %s', member.game.name)
-            self.logger.debug('  url: %s', member.game.url)
-            self.logger.debug('  type: %s', member.game.type)
-        self.logger.debug(constants.LOG_SEPARATOR)
+        await self.discord.connect()
 
     def stream_change(self, before, after):
         return self.has_role(after)\
@@ -99,23 +74,26 @@ class LiveBot():
             await asyncio.sleep(constants.POLL_INTERVAL)
 
     async def poll_once(self):
-        stream_ids = self.get_db_streams()
-        all_ids = ','.join(set(self.stream_ids + stream_ids))
-        live_streams = self.twitch.streams.get_live_streams(all_ids, limit=100)
-        
+        self.logger.debug('POLLING')
+        live_streams = self.twitch.streams.get_live_streams(','.join(self.stream_ids),
+                                                            limit=100)
+        live_stream_ids = [str(stream.channel.id) for stream in live_streams]
+        db_streams = self.get_db_streams()
+
+        self.logger.debug(live_stream_ids)
+        self.logger.debug(db_streams)
+
         for stream in live_streams:
-            stream_id = str(stream.channel.id)
-            if stream_id in stream_ids:
-                message_id = self.table.find_one(stream_id=stream_id)['message_id']
+            if stream.channel.id in db_streams:
+                message_id = self.table.find_one(stream_id=stream.channel.id)['message_id']
                 await self.update_stream(message_id, stream)
             else:
                 await self.start_stream(stream)
 
-        live_stream_ids = [str(stream.channel.id) for stream in live_streams]
-        for stream_id in stream_ids:
+        for stream_id in db_streams:
             if stream_id not in live_stream_ids:
                 message_id = self.table.find_one(stream_id=stream_id)['message_id']
-                await self.end_stream(message_id)
+                await self.end_stream(message_id)            
 
     async def start_stream(self, stream):
         content = constants.MESSAGE_TEXT % (stream.channel.display_name,
