@@ -8,7 +8,7 @@ import logging
 import pytz
 import twitch
 
-CHANNEL_ID = discord.Object(constants.CHANNEL_ID)
+CHANNEL_ID = discord.Object(constants.TEST_CHANNEL_ID)
 
 class LiveBot():
     def __init__(self):
