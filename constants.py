@@ -1,31 +1,30 @@
 from secrets import *
 
+LOG_SEPARATOR = '---------------------------------'
+
 MESSAGE_TEXT = '%s is live with %s, tune in now! %s'
+OFFLINE_MESSAGE_TEXT = '**%s** is **offline**.'
+
 EMBED_TYPE = 'rich'
 EMBED_COLOR = 6570404
-FOOTER_TEXT = 'Bot created by @jawlecks | Stream started'
+
+FOOTER_BASE_TEXT = 'Bot created by @jawlecks | %s'
+FOOTER_STARTED_TEXT = FOOTER_BASE_TEXT % 'Stream started'
+FOOTER_UPDATED_TEXT = FOOTER_BASE_TEXT % 'Last updated'
+FOOTER_OFFLINE_TEXT = FOOTER_BASE_TEXT % 'Stream ended'
+
 AUTHOR_TEXT = '%s is now streaming!'
+AUTHOR_OFFLINE_TEXT = '%s was streaming.'
 AUTHOR_ICON_URL = 'https://cdn.discordapp.com/emojis/287637883022737418.png'
 
-DB_NAME = 'messages.db'
+IMAGE_WIDTH = 400
+IMAGE_HEIGHT = 225
+
+DB_NAME = 'sqlite:///messages.db'
 TABLE_NAME = 'message'
 
-ROLE_IDS = [
-	'393327169268482048',
-	'393330483544588289',
-	'432529039664873474',
-#	'393594272122667012',
-	'425326366632837131',
-	'396151684553768989',
-	'393332636283699200',
-	'393332473318342656',
-	'393323193236062220',
-#	'393323112894038016',
-	'423608201230024714',
-	'393323144435335168',
-	'393334746626785280',
-	'393451952668803072',
-	'393332607753912320',
-	'393934297855426572',
-	'393332435028541440'
-]
+STREAM_IDS_FILE = 'stream_ids.txt'
+ROLE_IDS_FILE = 'role_ids.txt'
+
+# seconds
+POLL_INTERVAL = 300
