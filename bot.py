@@ -84,8 +84,9 @@ class LiveBot():
         self.logger.debug(db_streams)
 
         for stream in live_streams:
-            if stream.channel.id in db_streams:
-                message_id = self.table.find_one(stream_id=stream.channel.id)['message_id']
+            stream_id = str(stream.channel.id)
+            if stream_id in db_streams:
+                message_id = self.table.find_one(stream_id=stream_id)['message_id']
                 await self.update_stream(message_id, stream)
             else:
                 await self.start_stream(stream)
