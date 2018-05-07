@@ -6,8 +6,6 @@ import datetime
 import discord
 import logging
 import pytz
-import signal
-import sys
 import twitch
 
 CHANNEL_ID = discord.Object(constants.CHANNEL_ID)
@@ -24,15 +22,31 @@ class LiveBot():
         self.db = dataset.connect(constants.DB_NAME)
         self.table = self.db[constants.TABLE_NAME]
 
-        self.stream_ids = self.get_db_streams()
-        with open(constants.STREAM_IDS_FILE, 'r') as f:
-            self.stream_ids = set(self.stream_ids + f.read().split(','))
-
-        self.role_ids = None
-        with open(constants.ROLE_IDS_FILE, 'r') as f:
-            self.role_ids = f.read().split(',')
+        self.stream_ids = set(self.get_db_streams() +
+                              self.load_file(constants.STREAM_IDS_FILE))
+        self.role_ids = self.load_file(constants.ROLE_IDS_FILE)
 
         self.logger.debug('INITIALIZED')
+
+    def init_logger(self):
+        logger = logging.getLogger('discord')
+        logger.setLevel(logging.DEBUG)
+        handler = logging.FileHandler(filename='discord.log',
+                                      encoding='utf-8',
+                                      mode='w')
+        handler.setFormatter(logging.Formatter(
+            '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+        logger.addHandler(handler)
+        return logger
+
+    def load_file(self, file):
+        try:
+            with open(file, 'r') as f:
+                self.logger.info('File %s loaded' % file)
+                return f.read().split(',')
+        except FileNotFoundError:
+            self.logger.info('File %s not found' % file)
+            return []
 
     def run(self):
         try:
@@ -40,7 +54,7 @@ class LiveBot():
                      asyncio.ensure_future(self.poll())]
             self.loop.run_until_complete(asyncio.gather(*tasks))
         except KeyboardInterrupt:
-            self.tear_down()
+            self.loop.run_until_complete(self.tear_down())
         finally:
             self.loop.close()
 
@@ -48,6 +62,7 @@ class LiveBot():
         @self.discord.event
         async def on_member_update(before, after):
             if self.stream_change(before, after):
+                self.logger.info('Discord Member %s started streaming' % after)
                 user = after.game.url.split('/')[-1]
                 ids = self.twitch.users.translate_usernames_to_ids([user])
                 stream_id = str(ids[0].id)
@@ -61,25 +76,30 @@ class LiveBot():
                and not self.member_streaming(before)
 
     def has_role(self, member):
+        if len(self.role_ids) == 0:
+            return True
+
         for role in member.roles:
             if role.id in self.role_ids:
                 return True
+
         return False
 
     def member_streaming(self, member):
         return member.game is not None\
                and member.game.type == 1
 
-    def get_db_streams(self):
-        return [str(row['stream_id']) for row in self.table.find()]
-
     async def poll(self):
         while True:
+            start = self.loop.time()
             await self.poll_once()
-            await asyncio.sleep(constants.POLL_INTERVAL)
+            wait = constants.POLL_INTERVAL - (self.loop.time() - start)
+            self.logger.info('WAITING for %s seconds' % wait)
+            await asyncio.sleep(wait)
 
     async def poll_once(self):
-        self.logger.debug('POLLING')
+        self.logger.info('POLLING')
+
         stream_ids = ','.join(self.stream_ids)
         live_streams = self.twitch.streams.get_live_streams(stream_ids,
                                                             limit=100)
@@ -101,6 +121,9 @@ class LiveBot():
             if stream_id not in live_stream_ids:
                 message_id = self.get_message_id(stream_id)
                 await self.end_stream(message_id)
+
+    def get_db_streams(self):
+        return [str(row['stream_id']) for row in self.table.find()]
 
     def get_message_id(self, stream_id):
         return self.table.find_one(stream_id=stream_id)['message_id']
@@ -193,26 +216,10 @@ class LiveBot():
     def get_time(self):
         return datetime.datetime.now(pytz.timezone('US/Pacific'))
 
-    def init_logger(self):
-        logger = logging.getLogger('discord')
-        logger.setLevel(logging.DEBUG)
-        handler = logging.FileHandler(filename='discord.log',
-                                      encoding='utf-8',
-                                      mode='w')
-        handler.setFormatter(logging.Formatter(
-            '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-        logger.addHandler(handler)
-        return logger
-
-    def tear_down(self):
+    async def tear_down(self):
         self.db.commit()
-        self.loop.run_until_complete(self.discord.logout())
+        await self.discord.logout()
 
 if __name__ == '__main__':
     lb = LiveBot()
-
-    def sigterm_handler(signal, frame):
-        lb.tear_down()
-        sys.exit(0)
-
     lb.run()
