@@ -21,9 +21,9 @@ class LiveBot():
         self.db = dataset.connect(constants.DB_NAME)
         self.table = self.db[constants.TABLE_NAME]
 
-        self.stream_ids = None
+        self.stream_ids = self.get_db_streams()
         with open(constants.STREAM_IDS_FILE, 'r') as f:
-            self.stream_ids = f.read().split(',')
+            self.stream_ids = set(self.stream_ids + f.read().split(','))
         self.role_ids = None
         with open(constants.ROLE_IDS_FILE, 'r') as f:
             self.role_ids = f.read().split(',')
