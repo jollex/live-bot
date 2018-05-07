@@ -6,8 +6,6 @@ import datetime
 import discord
 import logging
 import pytz
-import signal
-import sys
 import twitch
 
 CHANNEL_ID = discord.Object(constants.TEST_CHANNEL_ID)
@@ -40,7 +38,7 @@ class LiveBot():
                      asyncio.ensure_future(self.poll())]
             self.loop.run_until_complete(asyncio.gather(*tasks))
         except KeyboardInterrupt:
-            self.tear_down()
+            self.loop.run_until.complete(self.tear_down())
         finally:
             self.loop.close()
 
@@ -70,9 +68,6 @@ class LiveBot():
         return member.game is not None\
                and member.game.type == 1
 
-    def get_db_streams(self):
-        return [str(row['stream_id']) for row in self.table.find()]
-
     async def poll(self):
         while True:
             await self.poll_once()
@@ -80,6 +75,7 @@ class LiveBot():
 
     async def poll_once(self):
         self.logger.debug('POLLING')
+
         stream_ids = ','.join(self.stream_ids)
         live_streams = self.twitch.streams.get_live_streams(stream_ids,
                                                             limit=100)
@@ -101,6 +97,9 @@ class LiveBot():
             if stream_id not in live_stream_ids:
                 message_id = self.get_message_id(stream_id)
                 await self.end_stream(message_id)
+
+    def get_db_streams(self):
+        return [str(row['stream_id']) for row in self.table.find()]
 
     def get_message_id(self, stream_id):
         return self.table.find_one(stream_id=stream_id)['message_id']
@@ -204,15 +203,10 @@ class LiveBot():
         logger.addHandler(handler)
         return logger
 
-    def tear_down(self):
+    async def tear_down(self):
         self.db.commit()
-        self.loop.run_until_complete(self.discord.logout())
+        await self.discord.logout()
 
 if __name__ == '__main__':
     lb = LiveBot()
-
-    def sigterm_handler(signal, frame):
-        lb.tear_down()
-        sys.exit(0)
-
     lb.run()
