@@ -6,6 +6,8 @@ import datetime
 import discord
 import logging
 import pytz
+import signal
+import sys
 import twitch
 
 CHANNEL_ID = discord.Object(constants.TEST_CHANNEL_ID)
@@ -195,4 +197,9 @@ class LiveBot():
 
 if __name__ == '__main__':
     lb = LiveBot()
+
+    def sigterm_handler(signal, frame):
+        lb.tear_down()
+        sys.exit(0)
+
     lb.run()
