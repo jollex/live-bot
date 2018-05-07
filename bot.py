@@ -18,7 +18,8 @@ class LiveBot():
         self.loop = asyncio.get_event_loop()
 
         self.discord = discord.Client()
-        self.loop.run_until_complete(self.discord.login(constants.DISCORD_TOKEN))
+        self.loop.run_until_complete(
+            self.discord.login(constants.DISCORD_TOKEN))
         self.twitch = twitch.TwitchClient(client_id=constants.TWITCH_ID)
         self.db = dataset.connect(constants.DB_NAME)
         self.table = self.db[constants.TABLE_NAME]
@@ -48,7 +49,8 @@ class LiveBot():
         async def on_member_update(before, after):
             if self.stream_change(before, after):
                 user = after.game.url.split('/')[-1]
-                stream_id = str(self.twitch.users.translate_usernames_to_ids([user])[0].id)
+                ids = self.twitch.users.translate_usernames_to_ids([user])
+                stream_id = str(ids[0].id)
                 self.stream_ids.append(stream_id)
 
         await self.discord.connect()
@@ -78,7 +80,8 @@ class LiveBot():
 
     async def poll_once(self):
         self.logger.debug('POLLING')
-        live_streams = self.twitch.streams.get_live_streams(','.join(self.stream_ids),
+        stream_ids = ','.join(self.stream_ids)
+        live_streams = self.twitch.streams.get_live_streams(stream_ids,
                                                             limit=100)
         live_stream_ids = [str(stream.channel.id) for stream in live_streams]
         db_streams = self.get_db_streams()
@@ -89,15 +92,18 @@ class LiveBot():
         for stream in live_streams:
             stream_id = str(stream.channel.id)
             if stream_id in db_streams:
-                message_id = self.table.find_one(stream_id=stream_id)['message_id']
+                message_id = self.get_message_id(stream_id)
                 await self.update_stream(message_id, stream)
             else:
                 await self.start_stream(stream)
 
         for stream_id in db_streams:
             if stream_id not in live_stream_ids:
-                message_id = self.table.find_one(stream_id=stream_id)['message_id']
-                await self.end_stream(message_id)            
+                message_id = self.get_message_id(stream_id)
+                await self.end_stream(message_id)
+
+    def get_message_id(self, stream_id):
+        return self.table.find_one(stream_id=stream_id)['message_id']
 
     async def start_stream(self, stream):
         content = constants.MESSAGE_TEXT % (stream.channel.display_name,
@@ -136,21 +142,19 @@ class LiveBot():
         return await self.discord.get_message(CHANNEL_ID, message_id)
 
     def get_embed(self, stream, update):
-        embed = discord.Embed(title=stream.channel.url,
-                              type=constants.EMBED_TYPE,
-                              url=stream.channel.url,
-                              timestamp=self.get_time(),
-                              color=constants.EMBED_COLOR)
-        footer = constants.FOOTER_UPDATED_TEXT if update else constants.FOOTER_STARTED_TEXT
-        embed.set_footer(text=footer)
-        image_url = stream.channel.profile_banner 
-        if stream.preview is not None:
-            image_url = stream.preview['template'].format(width=400, height=225)
+        if update:
+            footer = constants.FOOTER_UPDATED_TEXT
+        else:
+            footer = constants.FOOTER_STARTED_TEXT
+        embed = self.get_base_embed(stream.channel,
+                                    footer,
+                                    constants.AUTHOR_TEXT)
+
+        image_url = stream.preview['template'].format(
+            width=constants.IMAGE_WIDTH,
+            height=constants.IMAGE_HEIGHT)
         embed.set_image(url=image_url)
-        embed.set_thumbnail(url=stream.channel.logo)
-        embed.set_author(name=constants.AUTHOR_TEXT % stream.channel.display_name,
-                         url=stream.channel.url,
-                         icon_url=constants.AUTHOR_ICON_URL)
+        
         embed.add_field(name='Now Playing',
                         value=stream.game,
                         inline=False)
@@ -167,15 +171,21 @@ class LiveBot():
         return embed
 
     def get_offline_embed(self, channel):
+        embed = self.get_base_embed(channel,
+                                    constants.FOOTER_OFFLINE_TEXT,
+                                    constants.AUTHOR_OFFLINE_TEXT)
+        return embed
+
+    def get_base_embed(self, channel, footer, author_template):
         embed = discord.Embed(title=channel.url,
                               type=constants.EMBED_TYPE,
                               url=channel.url,
                               timestamp=self.get_time(),
                               color=constants.EMBED_COLOR)
-        embed.set_footer(text=constants.FOOTER_OFFLINE_TEXT)
-        embed.clear_fields()
         embed.set_thumbnail(url=channel.logo)
-        embed.set_author(name=constants.AUTHOR_OFFLINE_TEXT % channel.display_name,
+        embed.set_footer(text=footer,
+                         icon_url=constants.FOOTER_ICON_URL)
+        embed.set_author(name=author_template % channel.display_name,
                          url=channel.url,
                          icon_url=constants.AUTHOR_ICON_URL)
         return embed
@@ -186,8 +196,11 @@ class LiveBot():
     def init_logger(self):
         logger = logging.getLogger('discord')
         logger.setLevel(logging.DEBUG)
-        handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-        handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+        handler = logging.FileHandler(filename='discord.log',
+                                      encoding='utf-8',
+                                      mode='w')
+        handler.setFormatter(logging.Formatter(
+            '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
         logger.addHandler(handler)
         return logger
 
