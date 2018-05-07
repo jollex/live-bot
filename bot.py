@@ -29,14 +29,24 @@ class LiveBot():
         self.logger.debug('INITIALIZED')
 
     def init_logger(self):
-        logger = logging.getLogger('discord')
-        logger.setLevel(logging.DEBUG)
-        handler = logging.FileHandler(filename='discord.log',
+        handler = logging.FileHandler(filename='live-bot.log',
                                       encoding='utf-8',
-                                      mode='w')
+                                      mode='a')
         handler.setFormatter(logging.Formatter(
             '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+
+        discord_logger = logging.getLogger('discord')
+        discord_logger.setLevel(logging.DEBUG)
+        discord_logger.addHandler(handler)
+
+        async_logger = logging.getLogger('asyncio')
+        async_logger.setLevel(logging.DEBUG)
+        async_logger.addHandler(handler)
+
+        logger = logging.getLogger('live-bot')
+        logger.setLevel(logging.DEBUG)
         logger.addHandler(handler)
+
         return logger
 
     def load_file(self, file):
