@@ -24,6 +24,7 @@ class LiveBot():
         self.stream_ids = self.get_db_streams()
         with open(constants.STREAM_IDS_FILE, 'r') as f:
             self.stream_ids = set(self.stream_ids + f.read().split(','))
+
         self.role_ids = None
         with open(constants.ROLE_IDS_FILE, 'r') as f:
             self.role_ids = f.read().split(',')
@@ -66,7 +67,7 @@ class LiveBot():
                and member.game.type == 1
 
     def get_db_streams(self):
-        return [row['stream_id'] for row in self.table.find()]
+        return [str(row['stream_id']) for row in self.table.find()]
 
     async def poll(self):
         while True:
