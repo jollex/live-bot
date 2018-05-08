@@ -22,8 +22,10 @@ class LiveBot():
         self.db = dataset.connect(constants.DB_NAME)
         self.table = self.db[constants.TABLE_NAME]
 
-        self.stream_ids = set(self.get_db_streams() +
-                              self.load_file(constants.STREAM_IDS_FILE))
+        stream_ids = set(self.get_db_streams() +
+                         self.load_file(constants.STREAM_IDS_FILE))
+        self.stream_ids_map = {stream_id: None for stream_id in stream_ids}
+        
         self.role_ids = self.load_file(constants.ROLE_IDS_FILE)
 
         self.logger.debug('INITIALIZED')
@@ -76,8 +78,9 @@ class LiveBot():
                 user = after.game.url.split('/')[-1]
                 ids = self.twitch.users.translate_usernames_to_ids([user])
                 stream_id = str(ids[0].id)
-                if stream_id not in self.stream_ids:
-                    self.stream_ids.add(stream_id)
+                if stream_id not in self.stream_ids_map.keys():
+                    name = after.name if after.nick is None else after.nick
+                    self.stream_ids_map[stream_id] = name
 
         await self.discord.connect()
 
@@ -111,7 +114,7 @@ class LiveBot():
     async def poll_once(self):
         self.logger.info('POLLING')
 
-        stream_ids = ','.join(self.stream_ids)
+        stream_ids = ','.join(self.stream_ids_map.keys())
         live_streams = self.twitch.streams.get_live_streams(stream_ids,
                                                             limit=100)
         live_stream_ids = [str(stream.channel.id) for stream in live_streams]
@@ -126,12 +129,13 @@ class LiveBot():
                 message_id = self.get_message_id(stream_id)
                 await self.update_stream(message_id, stream)
             else:
-                await self.start_stream(stream)
+                await self.start_stream(stream, self.stream_ids_map[stream_id])
 
         for stream_id in db_streams:
             if stream_id not in live_stream_ids:
                 message_id = self.get_message_id(stream_id)
-                await self.end_stream(message_id)
+                await self.end_stream(message_id,
+                                      self.stream_ids_map[stream_id])
 
     def get_db_streams(self):
         return [str(row['stream_id']) for row in self.table.find()]
@@ -139,8 +143,9 @@ class LiveBot():
     def get_message_id(self, stream_id):
         return self.table.find_one(stream_id=stream_id)['message_id']
 
-    async def start_stream(self, stream):
-        content = constants.MESSAGE_TEXT % (stream.channel.display_name,
+    async def start_stream(self, stream, name):
+        name = name or stream.channel.display_name
+        content = constants.MESSAGE_TEXT % (name,
                                             stream.channel.game,
                                             stream.channel.url)
         embed = self.get_embed(stream, False)
@@ -159,12 +164,13 @@ class LiveBot():
         await self.discord.edit_message(message,
                                         embed=embed)
 
-    async def end_stream(self, message_id):
+    async def end_stream(self, message_id, name):
         message = await self.get_message(message_id)
         stream_id = self.table.find_one(message_id=message_id)['stream_id']
         channel = self.twitch.channels.get_by_id(stream_id)
 
-        content = constants.OFFLINE_MESSAGE_TEXT % channel.display_name
+        name = name or channel.display_name
+        content = constants.OFFLINE_MESSAGE_TEXT % name
         embed = self.get_offline_embed(channel)
         await self.discord.edit_message(message,
                                         new_content=content,
