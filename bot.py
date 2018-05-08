@@ -78,9 +78,8 @@ class LiveBot():
                 user = after.game.url.split('/')[-1]
                 ids = self.twitch.users.translate_usernames_to_ids([user])
                 stream_id = str(ids[0].id)
-                if stream_id not in self.stream_ids_map.keys():
-                    name = after.name if after.nick is None else after.nick
-                    self.stream_ids_map[stream_id] = name
+                name = after.name if after.nick is None else after.nick
+                self.stream_ids_map[stream_id] = name
 
         await self.discord.connect()
 
