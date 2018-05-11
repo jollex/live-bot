@@ -4,6 +4,7 @@ import asyncio
 import dataset
 import datetime
 import discord
+import imgurpython
 import logging
 import pytz
 import twitch
@@ -21,6 +22,8 @@ class LiveBot():
         self.twitch = twitch.TwitchClient(client_id=constants.TWITCH_ID)
         self.db = dataset.connect(constants.DB_NAME)
         self.table = self.db[constants.TABLE_NAME]
+        self.imgur = imgurpython.ImgurClient(constants.IMGUR_ID,
+                                             constants.IMGUR_SECRET)
 
         stream_ids = self.get_db_streams() +\
                      self.load_file(constants.STREAM_IDS_FILE)
@@ -78,7 +81,7 @@ class LiveBot():
                 user = after.game.url.split('/')[-1]
                 ids = self.twitch.users.translate_usernames_to_ids([user])
                 stream_id = str(ids[0].id)
-                name = after.name if after.nick is None else after.nick
+                name = after.nick or after.name
                 self.stream_ids_map[stream_id] = name
 
         await self.discord.connect()
@@ -100,7 +103,7 @@ class LiveBot():
 
     def member_streaming(self, member):
         return member.game is not None\
-               and member.game.type == 1
+               and member.game.type == constants.DISCORD_STREAMING_TYPE
 
     async def poll(self):
         while True:
@@ -112,6 +115,7 @@ class LiveBot():
 
     async def poll_once(self):
         self.logger.info('POLLING')
+        await self.discord.send_typing(CHANNEL_ID)
 
         stream_ids = ','.join(self.stream_ids_map.keys())
         live_streams = self.twitch.streams.get_live_streams(stream_ids,
@@ -192,7 +196,8 @@ class LiveBot():
         image_url = stream.preview['template'].format(
             width=constants.IMAGE_WIDTH,
             height=constants.IMAGE_HEIGHT)
-        embed.set_image(url=image_url)
+        new_url = self.get_new_url(image_url)
+        embed.set_image(url=new_url)
         
         embed.add_field(name='Now Playing',
                         value=stream.game,
@@ -228,6 +233,10 @@ class LiveBot():
                          url=channel.url,
                          icon_url=constants.AUTHOR_ICON_URL)
         return embed
+
+    def get_new_url(self, image_url):
+        new_image = self.imgur.upload_from_url(image_url)
+        return new_image['link']
 
     def get_time(self):
         return datetime.datetime.now(pytz.timezone('US/Pacific'))
