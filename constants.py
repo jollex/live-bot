@@ -1,6 +1,6 @@
 from secrets import *
 
-LOG_SEPARATOR = '---------------------------------'
+DISCORD_STREAMING_TYPE = 1
 
 MESSAGE_TEXT = '%s is live with %s, tune in now! %s'
 OFFLINE_MESSAGE_TEXT = '**%s** is **offline**.'
