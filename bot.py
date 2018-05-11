@@ -4,6 +4,7 @@ import asyncio
 import dataset
 import datetime
 import discord
+import imgurpython
 import logging
 import pytz
 import twitch
@@ -21,6 +22,8 @@ class LiveBot():
         self.twitch = twitch.TwitchClient(client_id=constants.TWITCH_ID)
         self.db = dataset.connect(constants.DB_NAME)
         self.table = self.db[constants.TABLE_NAME]
+        self.imgur = imgurpython.ImgurClient(constants.IMGUR_ID,
+                                             constants.IMGUR_SECRET)
 
         stream_ids = self.get_db_streams() +\
                      self.load_file(constants.STREAM_IDS_FILE)
@@ -193,7 +196,8 @@ class LiveBot():
         image_url = stream.preview['template'].format(
             width=constants.IMAGE_WIDTH,
             height=constants.IMAGE_HEIGHT)
-        embed.set_image(url=image_url)
+        new_url = self.get_new_url(image_url)
+        embed.set_image(url=new_url)
         
         embed.add_field(name='Now Playing',
                         value=stream.game,
@@ -229,6 +233,10 @@ class LiveBot():
                          url=channel.url,
                          icon_url=constants.AUTHOR_ICON_URL)
         return embed
+
+    def get_new_url(self, image_url):
+        new_image = self.imgur.upload_from_url(image_url)
+        return new_image['link']
 
     def get_time(self):
         return datetime.datetime.now(pytz.timezone('US/Pacific'))
