@@ -63,6 +63,9 @@ class LiveBot():
             self.logger.info('File %s not found' % file)
             return []
 
+    async def run_in_background(self, function, *args):
+        return await self.loop.run_in_executor(None, function, *args)
+
     def run(self):
         try:
             tasks = [asyncio.ensure_future(self.listen()),
@@ -79,7 +82,9 @@ class LiveBot():
             if self.stream_change(before, after):
                 self.logger.info('Discord Member %s started streaming' % after)
                 user = after.game.url.split('/')[-1]
-                ids = self.twitch.users.translate_usernames_to_ids([user])
+                ids = await self.run_in_background(
+                    self.twitch.users.translate_usernames_to_ids,
+                    [user])
                 stream_id = str(ids[0].id)
                 name = after.nick or after.name
                 self.stream_ids_map[stream_id] = name
@@ -118,8 +123,9 @@ class LiveBot():
         await self.discord.send_typing(CHANNEL_ID)
 
         stream_ids = ','.join(self.stream_ids_map.keys())
-        live_streams = self.twitch.streams.get_live_streams(stream_ids,
-                                                            limit=100)
+        live_streams = await self.run_in_background(
+            self.twitch.streams.get_live_streams,
+            stream_ids, None, None, None, 100)
         live_stream_ids = [str(stream.channel.id) for stream in live_streams]
         db_streams = self.get_db_streams()
 
@@ -151,7 +157,7 @@ class LiveBot():
         content = constants.MESSAGE_TEXT % (name,
                                             stream.channel.game,
                                             stream.channel.url)
-        embed = self.get_embed(stream, False)
+        embed = await self.get_embed(stream, False)
         message = await self.discord.send_message(CHANNEL_ID,
                                                   content=content,
                                                   embed=embed)
@@ -163,14 +169,16 @@ class LiveBot():
 
     async def update_stream(self, message_id, stream):
         message = await self.get_message(message_id)
-        embed = self.get_embed(stream, True)
+        embed = await self.get_embed(stream, True)
         await self.discord.edit_message(message,
                                         embed=embed)
 
     async def end_stream(self, message_id, name):
         message = await self.get_message(message_id)
         stream_id = self.table.find_one(message_id=message_id)['stream_id']
-        channel = self.twitch.channels.get_by_id(stream_id)
+        channel = await self.run_in_background(
+            self.twitch.channels.get_by_id,
+            stream_id)
 
         name = name or channel.display_name
         content = constants.OFFLINE_MESSAGE_TEXT % name
@@ -184,7 +192,7 @@ class LiveBot():
     async def get_message(self, message_id):
         return await self.discord.get_message(CHANNEL_ID, message_id)
 
-    def get_embed(self, stream, update):
+    async def get_embed(self, stream, update):
         if update:
             footer = constants.FOOTER_UPDATED_TEXT
         else:
@@ -196,7 +204,7 @@ class LiveBot():
         image_url = stream.preview['template'].format(
             width=constants.IMAGE_WIDTH,
             height=constants.IMAGE_HEIGHT)
-        new_url = self.get_new_url(image_url)
+        new_url = await self.get_new_url(image_url)
         embed.set_image(url=new_url)
         
         embed.add_field(name='Now Playing',
@@ -234,8 +242,10 @@ class LiveBot():
                          icon_url=constants.AUTHOR_ICON_URL)
         return embed
 
-    def get_new_url(self, image_url):
-        new_image = self.imgur.upload_from_url(image_url)
+    async def get_new_url(self, image_url):
+        new_image = await self.run_in_background(
+            self.imgur.upload_from_url,
+            image_url)
         return new_image['link']
 
     def get_time(self):
