@@ -28,4 +28,4 @@ STREAM_IDS_FILE = 'stream_ids.txt'
 ROLE_IDS_FILE = 'role_ids.txt'
 
 # seconds
-POLL_INTERVAL = 600
+POLL_INTERVAL = 900
