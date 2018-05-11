@@ -21,15 +21,20 @@ To deploy this bot follow these steps:
 The first file you will need to create is `secrets.py`. This file needs the following values:
 ```python
 DISCORD_TOKEN = 'your-token-here'
-CHANNEL_ID = 'your-channel-id-here'
 TWITCH_ID = 'your-twitch-id-here'
+IMGUR_ID = 'your-imgur-id-here'
+IMGUR_SECRET = 'your-imgur-secret-here'
+
+CHANNEL_ID = 'your-channel-id-here'
 ```
 
 To get a discord token, go to the [discord applications page](https://discordapp.com/developers/applications/me) and create a bot. Your discord token is the bot's 'Client Secret'.
 
-The channel ID is simply the discord channel ID of the channel you want the stream announcements posted in. To get this, right click on the channel you want in discord and click 'Copy ID'.
-
 To get a twitch ID, go to the [twitch applications page](https://dev.twitch.tv/dashboard/apps) and create an application. You can find your ID under 'Client ID'.
+
+To get an imgur ID and secret, go to the [imgur applications page](https://api.imgur.com/oauth2/addclient) and create an application with 'OAuth 2 authorization without callback URL'. Copy the imgur client ID and secret.
+
+The channel ID is simply the discord channel ID of the channel you want the stream announcements posted in. To get this, right click on the channel you want in discord and click 'Copy ID'.
 
 #### Stream and Role IDs
 If you wish to track a list of preset twitch streams, put all the stream IDs in `stream-ids.txt` on one line, separated by commas.
