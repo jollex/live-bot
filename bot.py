@@ -115,7 +115,6 @@ class LiveBot():
 
     async def poll_once(self):
         self.logger.info('POLLING')
-        await self.discord.send_typing(CHANNEL_ID)
 
         stream_ids = ','.join(self.stream_ids_map.keys())
         live_streams = self.twitch.streams.get_live_streams(stream_ids,
