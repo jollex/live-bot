@@ -1,10 +1,10 @@
 import constants
 
+import aioimgur
 import asyncio
 import dataset
 import datetime
 import discord
-import imgurpython
 import logging
 import pytz
 import twitch
@@ -22,14 +22,16 @@ class LiveBot():
         self.twitch = twitch.TwitchClient(client_id=constants.TWITCH_ID)
         self.db = dataset.connect(constants.DB_NAME)
         self.table = self.db[constants.TABLE_NAME]
-        self.imgur = imgurpython.ImgurClient(constants.IMGUR_ID,
-                                             constants.IMGUR_SECRET)
+        self.imgur = aioimgur.ImgurClient(constants.IMGUR_ID,
+                                          constants.IMGUR_SECRET)
 
         stream_ids = self.get_db_streams() +\
                      self.load_file(constants.STREAM_IDS_FILE)
         self.stream_ids_map = {stream_id: None for stream_id in stream_ids}
         
         self.role_ids = self.load_file(constants.ROLE_IDS_FILE)
+
+        self.update_preview = True
 
         self.logger.debug('INITIALIZED')
 
@@ -139,6 +141,8 @@ class LiveBot():
                 await self.end_stream(message_id,
                                       self.stream_ids_map[stream_id])
 
+        self.update_preview = not self.update_preview
+
     def get_db_streams(self):
         return [str(row['stream_id']) for row in self.table.find()]
 
@@ -150,7 +154,7 @@ class LiveBot():
         content = constants.MESSAGE_TEXT % (name,
                                             stream.channel.game,
                                             stream.channel.url)
-        embed = self.get_embed(stream, False)
+        embed = await self.get_embed(stream, False)
         message = await self.discord.send_message(CHANNEL_ID,
                                                   content=content,
                                                   embed=embed)
@@ -162,9 +166,13 @@ class LiveBot():
 
     async def update_stream(self, message_id, stream):
         message = await self.get_message(message_id)
-        embed = self.get_embed(stream, True)
+        embed = await self.get_embed(stream, True, self.get_image_url(message))
         await self.discord.edit_message(message,
                                         embed=embed)
+
+    def get_image_url(self, message):
+        embed = message.embeds[0]
+        return embed['image']['url']
 
     async def end_stream(self, message_id, name):
         message = await self.get_message(message_id)
@@ -183,7 +191,7 @@ class LiveBot():
     async def get_message(self, message_id):
         return await self.discord.get_message(CHANNEL_ID, message_id)
 
-    def get_embed(self, stream, update):
+    async def get_embed(self, stream, update, image_url=None):
         if update:
             footer = constants.FOOTER_UPDATED_TEXT
         else:
@@ -192,11 +200,12 @@ class LiveBot():
                                     footer,
                                     constants.AUTHOR_TEXT)
 
-        image_url = stream.preview['template'].format(
-            width=constants.IMAGE_WIDTH,
-            height=constants.IMAGE_HEIGHT)
-        new_url = self.get_new_url(image_url)
-        embed.set_image(url=new_url)
+        if self.update_preview or image_url is None:
+            preview_url = stream.preview['template'].format(
+                width=constants.IMAGE_WIDTH,
+                height=constants.IMAGE_HEIGHT)
+            image_url = await self.get_imgur_url(preview_url)
+        embed.set_image(url=image_url)
         
         embed.add_field(name='Now Playing',
                         value=stream.game,
@@ -233,8 +242,11 @@ class LiveBot():
                          icon_url=constants.AUTHOR_ICON_URL)
         return embed
 
-    def get_new_url(self, image_url):
-        new_image = self.imgur.upload_from_url(image_url)
+    async def get_imgur_url(self, image_url):
+        new_image = await self.imgur.upload_from_url(image_url)
+        self.logger.debug('IMGUR RATE LIMITS:')
+        for (k, v) in self.imgur.credits.items():
+            self.logger.debug('  %s: %s' % (k, v)) 
         return new_image['link']
 
     def get_time(self):
