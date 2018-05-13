@@ -16,6 +16,13 @@ To deploy this bot follow these steps:
 4. Install the required packages: `pip install -r requirements.txt`
 5. Create the database: `python create_db.py`
 
+As of right now (5/13/18), aioimgur doesn't have the latest version on pip. In order to install the latest version run the following commands: 
+```bash
+git clone https://github.com/hatarist/aioimgur
+cd aioimgur
+pip install .
+```
+
 ## Configuration
 #### Authentication Tokens and Channel ID
 The first file you will need to create is `secrets.py`. This file needs the following values:
