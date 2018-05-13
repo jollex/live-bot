@@ -31,7 +31,7 @@ class LiveBot():
         
         self.role_ids = self.load_file(constants.ROLE_IDS_FILE)
 
-        self.update_preview = True
+        self.update_preview = False
 
         self.logger.debug('INITIALIZED')
 
@@ -117,6 +117,7 @@ class LiveBot():
 
     async def poll_once(self):
         self.logger.info('POLLING')
+        self.update_preview = not self.update_preview
 
         stream_ids = ','.join(self.stream_ids_map.keys())
         live_streams = self.twitch.streams.get_live_streams(stream_ids,
@@ -140,8 +141,6 @@ class LiveBot():
                 message_id = self.get_message_id(stream_id)
                 await self.end_stream(message_id,
                                       self.stream_ids_map[stream_id])
-
-        self.update_preview = not self.update_preview
 
     def get_db_streams(self):
         return [str(row['stream_id']) for row in self.table.find()]
