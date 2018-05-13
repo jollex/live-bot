@@ -200,10 +200,10 @@ class LiveBot():
                                     footer,
                                     constants.AUTHOR_TEXT)
 
-        if self.update_preview or image_url is None:
-            preview_url = stream.preview['template'].format(
-                width=constants.IMAGE_WIDTH,
-                height=constants.IMAGE_HEIGHT)
+        image_url = image_url or stream.preview['template'].format(
+            width=constants.IMAGE_WIDTH,
+            height=constants.IMAGE_HEIGHT)
+        if self.update_preview:
             image_url = await self.get_imgur_url(preview_url)
         embed.set_image(url=image_url)
         
