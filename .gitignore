@@ -1,5 +1,6 @@
 __pycache__
 secrets.py
 *.log
+logs
 env
 *.db
