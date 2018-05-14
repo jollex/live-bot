@@ -8,10 +8,7 @@ OFFLINE_MESSAGE_TEXT = '**%s** is **offline**.'
 EMBED_TYPE = 'rich'
 EMBED_COLOR = 6570404
 
-FOOTER_BASE_TEXT = 'Created by @jawlecks | %s'
-FOOTER_STARTED_TEXT = FOOTER_BASE_TEXT % 'Stream started'
-FOOTER_UPDATED_TEXT = FOOTER_BASE_TEXT % 'Last updated'
-FOOTER_OFFLINE_TEXT = FOOTER_BASE_TEXT % 'Stream ended'
+FOOTER_TEXT = 'Created by @jawlecks | Last updated'
 FOOTER_ICON_URL = 'https://cdn.discordapp.com/emojis/328751425666547725.png'
 
 AUTHOR_TEXT = '%s is now streaming!'
