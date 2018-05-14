@@ -6,6 +6,8 @@ import dataset
 import datetime
 import discord
 import logging
+from logging.handlers import TimedRotatingFileHandler
+import os
 import pytz
 import twitch
 
@@ -31,14 +33,17 @@ class LiveBot():
         
         self.role_ids = self.load_file(constants.ROLE_IDS_FILE)
 
-        self.update_preview = False
-
         self.logger.debug('INITIALIZED')
 
     def init_logger(self):
-        handler = logging.FileHandler(filename='live-bot.log',
-                                      encoding='utf-8',
-                                      mode='a')
+        if not os.path.isdir(constants.LOG_DIR):
+            os.makedirs(constants.LOG_DIR)
+
+        handler = TimedRotatingFileHandler(
+            constants.LOG_FILE,
+            when='midnight',
+            backupCount=constants.MAX_LOGS,
+            encoding='utf-8')
         handler.setFormatter(logging.Formatter(
             '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 
@@ -117,7 +122,6 @@ class LiveBot():
 
     async def poll_once(self):
         self.logger.info('POLLING')
-        self.update_preview = not self.update_preview
 
         stream_ids = ','.join(self.stream_ids_map.keys())
         live_streams = self.twitch.streams.get_live_streams(stream_ids,
@@ -202,9 +206,7 @@ class LiveBot():
         preview_url = stream.preview['template'].format(
             width=constants.IMAGE_WIDTH,
             height=constants.IMAGE_HEIGHT)
-        image_url = image_url or preview_url
-        if self.update_preview:
-            image_url = await self.get_imgur_url(preview_url)
+        image_url = await self.get_imgur_url(preview_url)
         embed.set_image(url=image_url)
         
         embed.add_field(name='Now Playing',
