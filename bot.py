@@ -206,9 +206,7 @@ class LiveBot():
         preview_url = stream.preview['template'].format(
             width=constants.IMAGE_WIDTH,
             height=constants.IMAGE_HEIGHT)
-        image_url = image_url or preview_url
-        if self.update_preview:
-            image_url = await self.get_imgur_url(preview_url)
+        image_url = await self.get_imgur_url(preview_url)
         embed.set_image(url=image_url)
         
         embed.add_field(name='Now Playing',
