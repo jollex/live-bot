@@ -139,6 +139,7 @@ class LiveBot():
                 self.stream_ids_map[stream_id] = name
 
         # Start listening.
+        self.logger.debug('CONNECTING to discord')
         await self.discord.connect()
 
     def stream_change(self, before, after):
