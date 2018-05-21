@@ -27,7 +27,7 @@ class LiveBot():
         self.loop = asyncio.get_event_loop()
 
         # initialize clients for discord, twitch, database, and imgur
-        self.discord = discord.Client()
+        self.discord = discord.Client(loop=self.loop)
         self.loop.run_until_complete(
             self.discord.login(constants.DISCORD_TOKEN))
         self.twitch = twitch.TwitchClient(client_id=constants.TWITCH_ID)
