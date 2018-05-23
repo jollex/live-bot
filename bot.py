@@ -421,11 +421,15 @@ class LiveBot():
         Returns:
             str: The url to the uploaded image.
         """
-        new_image = await self.imgur.upload_from_url(image_url)
-        self.logger.debug('IMGUR RATE LIMITS:')
-        for (k, v) in self.imgur.credits.items():
-            self.logger.debug('  %s: %s' % (k, v)) 
-        return new_image['link']
+        try:
+            new_image = await self.imgur.upload_from_url(image_url)
+            self.logger.debug('IMGUR RATE LIMITS:')
+            for (k, v) in self.imgur.credits.items():
+                self.logger.debug('  %s: %s' % (k, v)) 
+            return new_image['link']
+        except aioimgur.helpers.error.ImgurClientRateLimitError:
+            self.logger.debug('IMGUR RATE LIMITS EXCEEDED')
+            return image_url
 
     def get_time(self):
         """datetime.datetime: Return the time right now."""
