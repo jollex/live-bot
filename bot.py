@@ -67,20 +67,21 @@ class LiveBot():
             '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 
         class StreamToLogger(object):
-            def __init__(self, log):
-                self.log = log
+            def __init__(self, logger, log_level=logging.DEBUG):
+                self.logger = logger
+                self.log_level = log_level
                 self.linebuf = ''
 
             def write(self, buf):
                 for line in buf.rstrip().splitlines():
-                    self.log(line.rstrip())
+                    self.logger.log(self.log_level, line.rstrip())
 
         stdout_logger = logging.getLogger('STDOUT')
-        sl = StreamToLogger(stdout_logger.debug)
+        sl = StreamToLogger(stdout_logger)
         sys.stdout = sl
 
         stderr_logger = logging.getLogger('STDERR')
-        sl = StreamToLogger(stderr_logger.debug)
+        sl = StreamToLogger(stderr_logger)
         sys.stderr = sl
 
         discord_logger = logging.getLogger('discord')
