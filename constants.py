@@ -24,7 +24,7 @@ TABLE_NAME = 'message'
 STREAM_IDS_FILE = 'stream_ids.txt'
 ROLE_IDS_FILE = 'role_ids.txt'
 
-POLL_INTERVAL = 900 # seconds
+POLL_INTERVAL = 1200 # seconds
 
 MAX_LOGS = 7
 LOG_DIR = 'logs/'
