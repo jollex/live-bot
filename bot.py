@@ -9,6 +9,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
 import pytz
+import sys
 import twitch
 
 CHANNEL_ID = discord.Object(constants.TEST_CHANNEL_ID)
@@ -64,6 +65,23 @@ class LiveBot():
             encoding='utf-8')
         handler.setFormatter(logging.Formatter(
             '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+
+        class StreamToLogger(object):
+            def __init__(self, log):
+                self.log = log
+                self.linebuf = ''
+
+            def write(self, buf):
+                for line in buf.rstrip().splitlines():
+                    self.log(line.rstrip())
+
+        stdout_logger = logging.getLogger('STDOUT')
+        sl = StreamToLogger(stdout_logger.debug)
+        sys.stdout = sl
+
+        stderr_logger = logging.getLogger('STDERR')
+        sl = StreamToLogger(stderr_logger.debug)
+        sys.stderr = sl
 
         discord_logger = logging.getLogger('discord')
         discord_logger.setLevel(logging.DEBUG)
