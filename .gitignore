@@ -4,3 +4,5 @@ secrets.py
 logs
 env
 *.db
+stream_ids.txt
+role_ids.txt

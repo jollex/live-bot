@@ -66,24 +66,6 @@ class LiveBot():
         handler.setFormatter(logging.Formatter(
             '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 
-        class StreamToLogger(object):
-            def __init__(self, logger, log_level=logging.DEBUG):
-                self.logger = logger
-                self.log_level = log_level
-                self.linebuf = ''
-
-            def write(self, buf):
-                for line in buf.rstrip().splitlines():
-                    self.logger.log(self.log_level, line.rstrip())
-
-        stdout_logger = logging.getLogger('STDOUT')
-        sl = StreamToLogger(stdout_logger)
-        sys.stdout = sl
-
-        stderr_logger = logging.getLogger('STDERR')
-        sl = StreamToLogger(stderr_logger)
-        sys.stderr = sl
-
         discord_logger = logging.getLogger('discord')
         discord_logger.setLevel(logging.DEBUG)
         discord_logger.addHandler(handler)
@@ -117,6 +99,17 @@ class LiveBot():
         except FileNotFoundError:
             self.logger.info('File %s not found' % file)
             return []
+
+    def write_file(self, file, data):
+        """Write given contents to the given file.
+
+        Args:
+            file (str): The path to the file
+            data (list): The data to write to the file
+        """
+        with open(file, 'w') as f:
+            self.logger.info('Data saved to file {}: {}'.format(file, data))
+            f.write(','.join(data))
 
     def run(self):
         """Run the bot.
@@ -256,11 +249,9 @@ class LiveBot():
         for stream in live_streams:
             stream_id = str(stream.channel.id)
             if stream_id in db_streams:
-                self.logger.debug('UPDATING %s' % stream_id)
                 message_id = self.get_message_id(stream_id)
                 await self.update_stream(message_id, stream)
             else:
-                self.logger.debug('STARTING %s' % stream_id)
                 await self.start_stream(stream, self.stream_ids_map[stream_id])
 
     async def update_ended_streams(self, db_streams, live_stream_ids):
@@ -277,7 +268,6 @@ class LiveBot():
         """
         for stream_id in db_streams:
             if stream_id not in live_stream_ids:
-                self.logger.debug('ENDING %s' % stream_id)
                 message_id = self.get_message_id(stream_id)
                 await self.end_stream(message_id,
                                       self.stream_ids_map[stream_id])
@@ -308,6 +298,8 @@ class LiveBot():
             stream (twitch.Stream): The metadata for the stream.
             name (str): The user's discord name or None.
         """
+        self.logger.debug('STARTING {}'.format(name))
+
         name = name or stream.channel.display_name
         content = constants.MESSAGE_TEXT % (name,
                                             stream.channel.game,
@@ -329,6 +321,9 @@ class LiveBot():
             message_id (str): The message id of the message to edit.
             stream (twitch.Stream): The twitch stream metadata for the stream.
         """
+        self.logger.debug('UPDATING {} ({})'
+            .format(stream.channel.display_name, message_id))
+
         message = await self.get_message(message_id)
         embed = await self.get_live_embed(stream)
         await self.discord.edit_message(message,
@@ -344,6 +339,8 @@ class LiveBot():
             message_id (str): The message id of the message to edit.
             name (str): The username of the user who went offline or None.
         """
+        self.logger.debug('ENDING {} ({})'.format(name, message_id))
+
         message = await self.get_message(message_id)
         stream_id = self.table.find_one(message_id=message_id)['stream_id']
         channel = self.twitch.channels.get_by_id(stream_id)
@@ -456,6 +453,8 @@ class LiveBot():
 
     async def tear_down(self):
         """Commit all changes to the database and disconnect from discord."""
+        self.logger.debug('TEARING DOWN')
+        self.write_file(constants.STREAM_IDS_FILE, self.stream_ids_map.keys())
         self.db.commit()
         await self.discord.logout()
 
