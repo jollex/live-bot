@@ -9,6 +9,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
 import pytz
+import sys
 import twitch
 
 CHANNEL_ID = discord.Object(constants.TEST_CHANNEL_ID)
@@ -18,14 +19,13 @@ class LiveBot():
 
     def __init__(self):
         """Initialize the bot.
-
+        
         Initialize logging and all clients. Get reference to event loop. Load
         stream and role id files.
         """
         self.logger = self.init_logger()
 
         self.loop = asyncio.get_event_loop()
-        self.loop.set_debug(True)
 
         # initialize clients for discord, twitch, database, and imgur
         self.discord = discord.Client(loop=self.loop)
@@ -43,7 +43,7 @@ class LiveBot():
         """dict of str to str or None: map of stream ids to discord display
         names or None if no discord account is linked to that stream.
         """
-
+        
         #: list of str: list of role ids that members must have one or more of
         self.role_ids = self.load_file(constants.ROLE_IDS_FILE)
 
@@ -375,7 +375,7 @@ class LiveBot():
             height=constants.IMAGE_HEIGHT)
         image_url = await self.get_imgur_url(preview_url)
         embed.set_image(url=image_url)
-
+        
         embed.add_field(name='Now Playing',
                         value=stream.game,
                         inline=False)
@@ -437,17 +437,15 @@ class LiveBot():
         Returns:
             str: The url to the uploaded image.
         """
-        future = asyncio.ensure_future(self.imgur.upload_from_url(image_url))
-        new_image = await asyncio.gather(future, return_exceptions=True)
-        if isinstance(new_image, aioimgur.helpers.error.ImgurClientRateLimitError):
-            self.logger.debug('IMGUR RATE LIMITS EXCEEDED')
-            return image_url
-        else:
+        try:
             new_image = await self.imgur.upload_from_url(image_url)
             self.logger.debug('IMGUR RATE LIMITS:')
             for (k, v) in self.imgur.credits.items():
-                self.logger.debug('  %s: %s' % (k, v))
+                self.logger.debug('  %s: %s' % (k, v)) 
             return new_image['link']
+        except aioimgur.helpers.error.ImgurClientRateLimitError:
+            self.logger.debug('IMGUR RATE LIMITS EXCEEDED')
+            return image_url
 
     def get_time(self):
         """datetime.datetime: Return the time right now."""
