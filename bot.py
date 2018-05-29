@@ -438,16 +438,19 @@ class LiveBot():
             str: The url to the uploaded image.
         """
         future = asyncio.ensure_future(self.imgur.upload_from_url(image_url))
-        new_image = await asyncio.gather(future, return_exceptions=True)
-        if isinstance(new_image, aioimgur.helpers.error.ImgurClientRateLimitError):
-            self.logger.debug('IMGUR RATE LIMITS EXCEEDED')
-            return image_url
-        else:
-            new_image = await self.imgur.upload_from_url(image_url)
-            self.logger.debug('IMGUR RATE LIMITS:')
-            for (k, v) in self.imgur.credits.items():
-                self.logger.debug('  %s: %s' % (k, v))
-            return new_image['link']
+
+        def callback(fut):
+            try:
+                new_image = fut.result()
+                self.logger.debug('IMGUR RATE LIMITS:')
+                for (k, v) in self.imgur.credits.items():
+                    self.logger.debug('  %s: %s' % (k, v))
+                return new_image['link']
+            except aioimgur.helpers.error.ImgurClientRateLimitError:
+                self.logger.debug('IMGUR RATE LIMITS EXCEEDED')
+                return image_url
+
+        future.add_done_callback(callback)
 
     def get_time(self):
         """datetime.datetime: Return the time right now."""
