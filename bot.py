@@ -19,7 +19,7 @@ class LiveBot():
 
     def __init__(self):
         """Initialize the bot.
-        
+
         Initialize logging and all clients. Get reference to event loop. Load
         stream and role id files.
         """
@@ -43,7 +43,7 @@ class LiveBot():
         """dict of str to str or None: map of stream ids to discord display
         names or None if no discord account is linked to that stream.
         """
-        
+
         #: list of str: list of role ids that members must have one or more of
         self.role_ids = self.load_file(constants.ROLE_IDS_FILE)
 
@@ -373,9 +373,10 @@ class LiveBot():
         preview_url = stream.preview['template'].format(
             width=constants.IMAGE_WIDTH,
             height=constants.IMAGE_HEIGHT)
-        image_url = await self.get_imgur_url(preview_url)
+        image_url = preview_url
+        #image_url = await self.get_imgur_url(preview_url)
         embed.set_image(url=image_url)
-        
+
         embed.add_field(name='Now Playing',
                         value=stream.game,
                         inline=False)
@@ -441,7 +442,7 @@ class LiveBot():
             new_image = await self.imgur.upload_from_url(image_url)
             self.logger.debug('IMGUR RATE LIMITS:')
             for (k, v) in self.imgur.credits.items():
-                self.logger.debug('  %s: %s' % (k, v)) 
+                self.logger.debug('  %s: %s' % (k, v))
             return new_image['link']
         except aioimgur.helpers.error.ImgurClientRateLimitError:
             self.logger.debug('IMGUR RATE LIMITS EXCEEDED')
