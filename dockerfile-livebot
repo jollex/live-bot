@@ -3,4 +3,4 @@ ADD . /app
 WORKDIR /app
 RUN pip install -r requirements.txt
 RUN python create_db.py
-RUN python bot.py
+CMD python bot.py

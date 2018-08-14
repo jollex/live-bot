@@ -1,8 +1,9 @@
 import constants
 import dataset
+import os
 
 def create_db(db_name):
-    if not os.file.exists(db_name.split('///')[1]):
+    if not os.path.isfile(db_name.split('///')[1]):
         db = dataset.connect(db_name)
         table = db.create_table(constants.TABLE_NAME,
     	    					primary_id='message_id',

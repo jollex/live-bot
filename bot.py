@@ -1,6 +1,5 @@
 import constants
 
-import aioimgur
 import asyncio
 import dataset
 import datetime
@@ -34,8 +33,6 @@ class LiveBot():
         self.twitch = twitch.TwitchClient(client_id=constants.TWITCH_ID)
         self.db = dataset.connect(constants.DB_NAME)
         self.table = self.db[constants.TABLE_NAME]
-        self.imgur = aioimgur.ImgurClient(constants.IMGUR_ID,
-                                          constants.IMGUR_SECRET)
 
         stream_ids = self.get_db_streams() +\
                      self.load_file(constants.STREAM_IDS_FILE)
@@ -374,7 +371,6 @@ class LiveBot():
             width=constants.IMAGE_WIDTH,
             height=constants.IMAGE_HEIGHT)
         image_url = preview_url
-        #image_url = await self.get_imgur_url(preview_url)
         embed.set_image(url=image_url)
 
         embed.add_field(name='Now Playing',
@@ -428,25 +424,6 @@ class LiveBot():
                          url=channel.url,
                          icon_url=constants.AUTHOR_ICON_URL)
         return embed
-
-    async def get_imgur_url(self, image_url):
-        """Upload the given image url to imgur and return the new url.
-
-        Args:
-            image_url (str): The url to the image to upload.
-
-        Returns:
-            str: The url to the uploaded image.
-        """
-        try:
-            new_image = await self.imgur.upload_from_url(image_url)
-            self.logger.debug('IMGUR RATE LIMITS:')
-            for (k, v) in self.imgur.credits.items():
-                self.logger.debug('  %s: %s' % (k, v))
-            return new_image['link']
-        except aioimgur.helpers.error.ImgurClientRateLimitError:
-            self.logger.debug('IMGUR RATE LIMITS EXCEEDED')
-            return image_url
 
     def get_time(self):
         """datetime.datetime: Return the time right now."""
