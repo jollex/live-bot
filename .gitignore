@@ -6,3 +6,4 @@ env
 *.db
 stream_ids.txt
 role_ids.txt
+.idea
