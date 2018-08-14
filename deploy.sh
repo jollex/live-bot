@@ -7,5 +7,6 @@ RSYNC_FLAGS="--exclude=.idea --exclude=env --exclude=.git --exclude=logs --exclu
 
 # deploy
 rsync ${RSYNC_FLAGS} . jawlecks@${APP_HOST}:${REMOTE_DIR}
-ssh jawlecks@${APP_HOST} "docker build -f ${REMOTE_DIR}/dockerfile-livebot -t livebot ${REMOTE_DIR}"
-#ssh jawlecks@${APP_HOST} "docker run livebot -d"
+ssh jawlecks@${APP_HOST} "cd ${REMOTE_DIR} && docker-compose down"
+ssh jawlecks@${APP_HOST} "docker build -f ${REMOTE_DIR}/Dockerfile -t livebot ${REMOTE_DIR}"
+ssh jawlecks@${APP_HOST} "cd ${REMOTE_DIR} && docker-compose up -d"

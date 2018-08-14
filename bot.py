@@ -55,25 +55,33 @@ class LiveBot():
         if not os.path.isdir(constants.LOG_DIR):
             os.makedirs(constants.LOG_DIR)
 
-        handler = TimedRotatingFileHandler(
+        formatter = logging.Formatter(
+            '%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+
+        file_handler = TimedRotatingFileHandler(
             constants.LOG_FILE,
             when='midnight',
             backupCount=constants.MAX_LOGS,
             encoding='utf-8')
-        handler.setFormatter(logging.Formatter(
-            '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+        file_handler.setFormatter(formatter)
+
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setFormatter(formatter)
 
         discord_logger = logging.getLogger('discord')
         discord_logger.setLevel(logging.DEBUG)
-        discord_logger.addHandler(handler)
+        discord_logger.addHandler(file_handler)
+        discord_logger.addHandler(stdout_handler)
 
         async_logger = logging.getLogger('asyncio')
         async_logger.setLevel(logging.DEBUG)
-        async_logger.addHandler(handler)
+        async_logger.addHandler(file_handler)
+        async_logger.addHandler(stdout_handler)
 
         logger = logging.getLogger('live-bot')
         logger.setLevel(logging.DEBUG)
-        logger.addHandler(handler)
+        logger.addHandler(file_handler)
+        logger.addHandler(stdout_handler)
 
         return logger
 
@@ -353,6 +361,7 @@ class LiveBot():
 
     async def get_message(self, message_id):
         """discord.Message: Return the message for the given message id."""
+        print(CHANNEL_ID, message_id)
         return await self.discord.get_message(CHANNEL_ID, message_id)
 
     async def get_live_embed(self, stream):
