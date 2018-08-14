@@ -1,5 +1,4 @@
 aiohttp==1.0.5
-aioimgur==0.1.0
 alembic==0.9.9
 async-timeout==2.0.1
 banal==0.3.5

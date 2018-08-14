@@ -1,0 +1,10 @@
+version: '3'
+services:
+  live-bot:
+    container_name: lb
+    image: livebot
+
+    volumes:
+      - /srv/live-bot:/app
+
+    restart: always

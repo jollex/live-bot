@@ -1,6 +1,5 @@
 import constants
 
-import aioimgur
 import asyncio
 import dataset
 import datetime
@@ -34,8 +33,6 @@ class LiveBot():
         self.twitch = twitch.TwitchClient(client_id=constants.TWITCH_ID)
         self.db = dataset.connect(constants.DB_NAME)
         self.table = self.db[constants.TABLE_NAME]
-        self.imgur = aioimgur.ImgurClient(constants.IMGUR_ID,
-                                          constants.IMGUR_SECRET)
 
         stream_ids = self.get_db_streams() +\
                      self.load_file(constants.STREAM_IDS_FILE)
@@ -58,25 +55,33 @@ class LiveBot():
         if not os.path.isdir(constants.LOG_DIR):
             os.makedirs(constants.LOG_DIR)
 
-        handler = TimedRotatingFileHandler(
+        formatter = logging.Formatter(
+            '%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+
+        file_handler = TimedRotatingFileHandler(
             constants.LOG_FILE,
             when='midnight',
             backupCount=constants.MAX_LOGS,
             encoding='utf-8')
-        handler.setFormatter(logging.Formatter(
-            '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+        file_handler.setFormatter(formatter)
+
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setFormatter(formatter)
 
         discord_logger = logging.getLogger('discord')
         discord_logger.setLevel(logging.DEBUG)
-        discord_logger.addHandler(handler)
+        discord_logger.addHandler(file_handler)
+        discord_logger.addHandler(stdout_handler)
 
         async_logger = logging.getLogger('asyncio')
         async_logger.setLevel(logging.DEBUG)
-        async_logger.addHandler(handler)
+        async_logger.addHandler(file_handler)
+        async_logger.addHandler(stdout_handler)
 
         logger = logging.getLogger('live-bot')
         logger.setLevel(logging.DEBUG)
-        logger.addHandler(handler)
+        logger.addHandler(file_handler)
+        logger.addHandler(stdout_handler)
 
         return logger
 
@@ -356,6 +361,7 @@ class LiveBot():
 
     async def get_message(self, message_id):
         """discord.Message: Return the message for the given message id."""
+        print(CHANNEL_ID, message_id)
         return await self.discord.get_message(CHANNEL_ID, message_id)
 
     async def get_live_embed(self, stream):
@@ -374,7 +380,6 @@ class LiveBot():
             width=constants.IMAGE_WIDTH,
             height=constants.IMAGE_HEIGHT)
         image_url = preview_url
-        #image_url = await self.get_imgur_url(preview_url)
         embed.set_image(url=image_url)
 
         embed.add_field(name='Now Playing',
@@ -428,25 +433,6 @@ class LiveBot():
                          url=channel.url,
                          icon_url=constants.AUTHOR_ICON_URL)
         return embed
-
-    async def get_imgur_url(self, image_url):
-        """Upload the given image url to imgur and return the new url.
-
-        Args:
-            image_url (str): The url to the image to upload.
-
-        Returns:
-            str: The url to the uploaded image.
-        """
-        try:
-            new_image = await self.imgur.upload_from_url(image_url)
-            self.logger.debug('IMGUR RATE LIMITS:')
-            for (k, v) in self.imgur.credits.items():
-                self.logger.debug('  %s: %s' % (k, v))
-            return new_image['link']
-        except aioimgur.helpers.error.ImgurClientRateLimitError:
-            self.logger.debug('IMGUR RATE LIMITS EXCEEDED')
-            return image_url
 
     def get_time(self):
         """datetime.datetime: Return the time right now."""
