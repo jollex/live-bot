@@ -3,7 +3,7 @@
 # config
 APP_HOST=206.81.1.131
 REMOTE_DIR=/srv/live-bot
-RSYNC_FLAGS="--exclude=.idea --exclude=env --exclude=.git --exclude=logs --exclude=__pycache__ -av"
+RSYNC_FLAGS="--exclude=.idea --exclude=env --exclude=.git --exclude=logs --exclude=__pycache__ --exclude=messages.db -av"
 
 # deploy
 rsync ${RSYNC_FLAGS} . jawlecks@${APP_HOST}:${REMOTE_DIR}
