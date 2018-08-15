@@ -69,12 +69,12 @@ class LiveBot():
         stdout_handler.setFormatter(formatter)
 
         discord_logger = logging.getLogger('discord')
-        discord_logger.setLevel(logging.DEBUG)
+        discord_logger.setLevel(logging.INFO)
         discord_logger.addHandler(file_handler)
         discord_logger.addHandler(stdout_handler)
 
         async_logger = logging.getLogger('asyncio')
-        async_logger.setLevel(logging.DEBUG)
+        async_logger.setLevel(logging.INFO)
         async_logger.addHandler(file_handler)
         async_logger.addHandler(stdout_handler)
 
