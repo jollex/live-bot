@@ -6,7 +6,7 @@ REMOTE_DIR=/srv/live-bot
 RSYNC_FLAGS="--exclude=.idea --exclude=env --exclude=.git --exclude=logs --exclude=__pycache__ --exclude=messages.db -av"
 
 # deploy
-rsync ${RSYNC_FLAGS} . jawlecks@${APP_HOST}:${REMOTE_DIR}
 ssh jawlecks@${APP_HOST} "cd ${REMOTE_DIR} && docker-compose down"
+rsync ${RSYNC_FLAGS} . jawlecks@${APP_HOST}:${REMOTE_DIR}
 ssh jawlecks@${APP_HOST} "docker build -f ${REMOTE_DIR}/Dockerfile -t livebot ${REMOTE_DIR}"
 ssh jawlecks@${APP_HOST} "cd ${REMOTE_DIR} && docker-compose up -d"
