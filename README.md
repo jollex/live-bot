@@ -16,21 +16,12 @@ To deploy this bot follow these steps:
 4. Install the required packages: `pip install -r requirements.txt`
 5. Create the database: `python create_db.py`
 
-As of right now (5/13/18), aioimgur doesn't have the latest version on pip. In order to install the latest version run the following commands: 
-```bash
-git clone https://github.com/hatarist/aioimgur
-cd aioimgur
-pip install .
-```
-
 ## Configuration
 #### Authentication Tokens and Channel ID
 The first file you will need to create is `secrets.py`. This file needs the following values:
 ```python
 DISCORD_TOKEN = 'your-token-here'
 TWITCH_ID = 'your-twitch-id-here'
-IMGUR_ID = 'your-imgur-id-here'
-IMGUR_SECRET = 'your-imgur-secret-here'
 
 CHANNEL_ID = 'your-channel-id-here'
 ```
@@ -38,8 +29,6 @@ CHANNEL_ID = 'your-channel-id-here'
 To get a discord token, go to the [discord applications page](https://discordapp.com/developers/applications/me) and create a bot. Your discord token is the bot's 'Client Secret'.
 
 To get a twitch ID, go to the [twitch applications page](https://dev.twitch.tv/dashboard/apps) and create an application. You can find your ID under 'Client ID'.
-
-To get an imgur ID and secret, go to the [imgur applications page](https://api.imgur.com/oauth2/addclient) and create an application with 'OAuth 2 authorization without callback URL'. Copy the imgur client ID and secret.
 
 The channel ID is simply the discord channel ID of the channel you want the stream announcements posted in. To get this, right click on the channel you want in discord and click 'Copy ID'.
 
