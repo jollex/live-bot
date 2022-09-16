@@ -7,7 +7,7 @@ chardet==3.0.4
 dataset==1.0.8
 discord.py==0.16.12
 idna==2.6
-Mako==1.0.7
+Mako==1.2.2
 MarkupSafe==1.0
 multidict==4.2.0
 normality==0.5.12
